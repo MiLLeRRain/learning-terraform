@@ -79,7 +79,7 @@ resource "aws_lb_target_group" "blog" {
 
 resource "aws_lb_target_group_attachment" "blog" {
   target_group_arn = aws_lb_target_group.blog.arn
-  target_id        = aws_instance.blog.id
+  target_id        = module.blog_autoscaling.id
   port             = 80
 }
 
