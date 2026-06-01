@@ -35,7 +35,7 @@ module "blog_vpc" {
 module "module_sg" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "5.3.1"
-  name    = "${var.environment.name}_sg"
+  name    = "${var.environment.name}-sg"
 
   vpc_id  = module.blog_vpc.vpc_id
 
@@ -49,7 +49,7 @@ module "module_sg" {
 module "blog_alb" {
   source = "terraform-aws-modules/alb/aws"
 
-  name    = "${var.environment.name}_alb"
+  name    = "${var.environment.name}-alb"
   vpc_id  = module.blog_vpc.vpc_id
   subnets = module.blog_vpc.public_subnets
 
@@ -80,14 +80,14 @@ resource "aws_lb_target_group" "blog" {
 module "blog_autoscaling" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "9.2.1"
-  name    = "${var.environment.name}_autoscaling"
+  name    = "${var.environment.name}-autoscaling"
 
   min_size = var.min_size
   max_size = var.max_size
 
   vpc_zone_identifier = module.blog_vpc.public_subnets
 
-  launch_template_name = "${var.environment.name}_launch_template"
+  launch_template_name = "${var.environment.name}-launch-template"
 
   security_groups = [module.module_sg.security_group_id]
   instance_type   = var.instance_type
