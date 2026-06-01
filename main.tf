@@ -1,17 +1,5 @@
-data "aws_ami" "app_ami" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["bitnami-tomcat-*-x86_64-hvm-ebs-nami"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["979382823631"] # Bitnami
+data "aws_ssm_parameter" "app_ami" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
 module "blog_vpc" {
@@ -30,20 +18,6 @@ module "blog_vpc" {
     Terraform = "true"
     Environment = "dev"
   }
-}
-
-module "module_sg" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "5.3.1"
-  name    = "blog_new_with_module"
-
-  vpc_id  = module.blog_vpc.vpc_id
-
-  ingress_rules = ["http-80-tcp", "https-443-tcp"]
-  ingress_cidr_blocks = ["0.0.0.0/0"]
-
-  egress_rules  = ["all-all"]
-  egress_cidr_blocks = ["0.0.0.0/0"]
 }
 
 module "alb" {
@@ -88,14 +62,41 @@ module "blog_autoscaling" {
   vpc_zone_identifier = module.blog_vpc.public_subnets
 
   launch_template_name = "blog"
-  
+
   security_groups = [module.module_sg.security_group_id]
   instance_type   = var.instance_type
-  image_id        = data.aws_ami.app_ami.id
+  image_id            = data.aws_ami.app_ami.id
+  # user_data = base64encode(<<-EOT
+  #   #!/bin/bash
+  #   dnf install -y httpd
+  #   cat <<'EOF' > /var/www/html/index.html
+  #   <html>
+  #     <body>
+  #       <h1>Learning Terraform Blog</h1>
+  #     </body>
+  #   </html>
+  #   EOF
+  #   systemctl enable --now httpd
+  # EOT
+  # )
 
   traffic_source_attachments = {
     blog_alb = {
       traffic_source_identifier = aws_lb_target_group.blog.arn
     }
   }
+}
+
+module "module_sg" {
+  source  = "terraform-aws-modules/security-group/aws"
+  version = "5.3.1"
+  name    = "blog_new_with_module"
+
+  vpc_id  = module.blog_vpc.vpc_id
+
+  ingress_rules = ["http-80-tcp", "https-443-tcp"]
+  ingress_cidr_blocks = ["0.0.0.0/0"]
+
+  egress_rules  = ["all-all"]
+  egress_cidr_blocks = ["0.0.0.0/0"]
 }
